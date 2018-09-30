@@ -1,0 +1,231 @@
+---
+title: "Project"
+author: "Xuqing Luo, Peixi Jiang"
+date: "2018/4/24"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r,echo=FALSE}
+starbucks <- read.csv("~/Documents/WFU/Spring 2018/MST 256/data/starbucks_drinkMenu_expanded.csv")
+```
+
+
+##EDA
+```{r}
+plot(starbucks$Calories~starbucks$Beverage_category)
+
+plot(starbucks$Calories~starbucks$Beverage)
+
+plot(starbucks$Calories~starbucks$Beverage_prep)
+
+Total_Fat<-as.numeric(starbucks$Total.Fat..g.)
+starbucks <- cbind(starbucks,Total_Fat)
+plot(starbucks$Calories~starbucks$Total_Fat)
+
+plot(starbucks$Calories~starbucks$Trans.Fat..g.)
+
+plot(starbucks$Calories~starbucks$Total.Carbohydrates..g.)
+
+plot(starbucks$Calories~starbucks$Cholesterol..mg.)
+
+plot(starbucks$Calories~starbucks$Dietary.Fibre..g.)
+
+plot(starbucks$Calories~starbucks$Sugars..g.)
+
+plot(starbucks$Calories~starbucks$Protein..g.)
+
+VitaminC <- as.numeric(starbucks$Vitamin.C....DV.)
+starbucks <- cbind(starbucks,VitaminC)
+plot(starbucks$Calories~starbucks$VitaminC)
+
+VitaminA <- as.numeric(starbucks$Vitamin.A....DV.)
+starbucks <- cbind(starbucks,VitaminA)
+plot(starbucks$Calories~VitaminA)
+
+Calcium <- as.numeric(starbucks$Calcium....DV.)
+starbucks <- cbind(starbucks,Calcium)
+plot(starbucks$Calories~Calcium)
+
+Iron <- as.numeric(starbucks$Iron....DV.)
+starbucks <- cbind(starbucks,Iron)
+plot(starbucks$Calories~Iron)
+
+Caffeine <- as.numeric(starbucks$Caffeine..mg.)
+starbucks <- cbind(starbucks,Caffeine)
+plot(starbucks$Calories~Caffeine)
+
+plot(starbucks$Calories~starbucks$Saturated.Fat..g.)
+
+plot(starbucks$Calories~starbucks$Sodium..mg.)
+```
+
+
+```{r}
+table(starbucks$Beverage_prep)
+```
+
+create indicator for Beverage_prep about size
+```{r}
+size_Tall <- ifelse(starbucks$Beverage_prep == "Tall" | starbucks$Beverage_prep=="Tall Nonfat Milk","yes","no")
+size_Grande <- ifelse(starbucks$Beverage_prep == "Grande" | starbucks$Beverage_prep == "Grande Nonfat Milk","yes","no")
+size_Venti <- ifelse(starbucks$Beverage_prep == "Venti" | starbucks$Beverage_prep == "Venti Nonfat Milk","yes","no")
+```
+
+
+create indicator for Beverage_prep about milk
+```{r}
+milk_0.02 <- ifelse(starbucks$Beverage_prep == "2% Milk" ,"yes","no")
+milk_nonfat <- ifelse(starbucks$Beverage_prep == "Grande Nonfat Milk" | starbucks$Beverage_prep == "Short Nonfat Milk" | starbucks$Beverage_prep == "Tall Nonfat Milk" | starbucks$Beverage_prep == "Venti Nonfat Milk","yes","no")
+milk_whole <- ifelse(starbucks$Beverage_prep == "Whole Milk","yes","no")
+milk_soy <- ifelse(starbucks$Beverage_prep == "Soymilk","yes","no") 
+```
+
+test whether size is influencial using F-test
+```{r}
+NullModelSize <- lm(Calories~Beverage_category+Total_Fat+Trans.Fat..g.+Total.Carbohydrates..g.+Cholesterol..mg.+Sugars..g.+Protein..g.+Iron+Sodium..mg.+Calcium+milk_0.02+milk_nonfat+milk_soy+milk_whole, data = starbucks)
+AltModelSize <- lm(Calories~Beverage_category+Total_Fat+Trans.Fat..g.+Total.Carbohydrates..g.+Cholesterol..mg.+Sugars..g.+Protein..g.+Iron+Sodium..mg.+Calcium+milk_0.02+milk_nonfat+milk_soy+milk_whole+size_Grande+size_Tall+size_Venti, data = starbucks)
+anova(NullModelSize,AltModelSize)
+```
+
+With a p-value this small, we are confident to reject the null model --> size is a statistically significant to predict calories
+
+
+
+test whether milk type is influencial using F-test
+```{r}
+NullModelMilk <- lm(Calories~Beverage_category+Total_Fat+Trans.Fat..g.+Total.Carbohydrates..g.+Cholesterol..mg.+Sugars..g.+Protein..g.+Iron+Sodium..mg.+Calcium+size_Grande+size_Tall+size_Venti, data = starbucks)
+AltModelMilk <- lm(Calories~Beverage_category+Total_Fat+Trans.Fat..g.+Total.Carbohydrates..g.+Cholesterol..mg.+Sugars..g.+Protein..g.+Iron+Sodium..mg.+Calcium+milk_0.02+milk_nonfat+milk_soy+milk_whole+size_Grande+size_Tall+size_Venti, data = starbucks)
+anova(NullModelMilk,AltModelMilk)
+```
+
+With a p-value this small, we are confident to reject the null model --> milk type is a statistically significant to predict calories --> AltModelMilk
+
+
+Transform Iron into polynomia of third power
+```{r}
+IronPolyModel2 <- lm(Calories~Beverage_category+Total_Fat+Trans.Fat..g.+Total.Carbohydrates..g.+Cholesterol..mg.+Sugars..g.+Protein..g.+poly(Iron,2)+Sodium..mg.+Calcium+milk_0.02+milk_nonfat+milk_soy+milk_whole+size_Grande+size_Tall+size_Venti, data = starbucks)
+summary(IronPolyModel2)
+summary(AltModelMilk)
+```
+pick IronPolyModel2, since it has smaller standard error
+
+
+Transform Calcium into polynomia of third power
+```{r}
+CalPolyModel3 <- lm(Calories~Beverage_category+Total_Fat+Trans.Fat..g.+Total.Carbohydrates..g.+Cholesterol..mg.+Sugars..g.+Protein..g.+poly(Iron,2)+Sodium..mg.+poly(Calcium,3)+milk_0.02+milk_nonfat+milk_soy+milk_whole+size_Grande+size_Tall+size_Venti, data = starbucks)
+
+summary(CalPolyModel3)
+summary(IronPolyModel2)
+```
+pick CalPolyModel3, since it has larger r-squared and smaller standard error
+
+
+
+Check Correlation 
+```{r}
+cor(starbucks[,c("Total_Fat","Total.Carbohydrates..g.","Cholesterol..mg.","Sugars..g.","Protein..g.","VitaminC","VitaminA","Calcium","Iron","Sodium..mg.")])
+```
+
+Need correlation of:
+Cholesterol X Carbohydrates
+Sugar X Carbohydrates
+Sugar X Cholesterol --> 0.9841 --> only take one -- sugar
+
+
+
+Our rough model is CalPolyModel3 + correlation between sugar X carbohydrate - cholesterol
+
+```{r}
+RoughModel <- lm(Calories~Beverage_category+Total_Fat+Trans.Fat..g.+Total.Carbohydrates..g.+Sugars..g.+Protein..g.+poly(Iron,2)+Sodium..mg.+poly(Calcium,3)+milk_0.02+milk_nonfat+milk_soy+milk_whole+size_Grande+size_Tall+size_Venti+Sugars..g.*Total.Carbohydrates..g., data = starbucks)
+```
+
+
+
+
+##Model Selection
+First of all, by looking at its summary, we can see what can be removed from rough model to form the refined model.
+```{r,echo=FALSE}
+#summary(RoughModel)
+```
+
+After comparison, the p-value for the following predictors are too big (bigger than alpha = 0.5) that we remove them in our refined model: poly(Cal,2 and 3), milk_0.02, milk_soy, milk_whole, and size_Tall. 
+
+Then, we create a model for the refined model, named it RefinedModel. And we run anova to see whether RoughModel or RefinedModel is better.
+```{r,echo=FALSE}
+RefinedModel <- lm(Calories~Beverage_category+Total_Fat+Trans.Fat..g.+Total.Carbohydrates..g.+Sugars..g.+Protein..g.+poly(Iron,2)+Sodium..mg.+Calcium+milk_nonfat+size_Venti+Sugars..g.*Total.Carbohydrates..g., data = starbucks)
+#anova(RefinedModel,RoughModel)
+```
+
+With a p-value = 0.01018, we reject null and continue using our rough model
+
+
+After that, we continue with a best set selection to see which are the best combinations of predictors.
+```{r,echo=FALSE}
+library(leaps)
+leaps <- regsubsets(Calories~Beverage_category+Total_Fat+Trans.Fat..g.+Total.Carbohydrates..g.+Sugars..g.+Protein..g.+poly(Iron,2)+Sodium..mg.+poly(Calcium,3)+milk_0.02+milk_nonfat+milk_soy+milk_whole+size_Grande+size_Tall+size_Venti+Sugars..g.*Total.Carbohydrates..g., data = starbucks)
+plot(leaps,scale = "adjr2")
+```
+
+The graph above shows the adjustive r square for different combinations of predictors. Since the adjustive r square differs for so little, we take all the predictors appear in the graph as our BSSModel. Before creating the model, we need to create indicator for the categorical variables that gets in.
+
+```{r,echo=FALSE}
+#Create indicator for Frappucino Blended Coffee
+LightBlenCa <- ifelse(starbucks$Beverage_category == "Frappuccino® Light Blended Coffee","yes","no")
+Smothies <- ifelse(starbucks$Beverage_category == "Smoothies","yes","no")
+starbucks <- cbind(starbucks,LightBlenCa)
+starbucks <- cbind(starbucks,Smothies)
+```
+
+After having the BSSModel, we run anova of BSSModel and RoughModel to see which is better
+
+```{r,echo=FALSE}
+#Run F-test to test model from BSS or CalPolyModel3
+BSSModel <- lm(Calories~Smothies+Total_Fat+Trans.Fat..g.+Sugars..g.+Protein..g.+Sodium..mg.+milk_nonfat+milk_soy+size_Venti, data = starbucks)
+#anova(BSSModel,RoughModel)
+```
+
+```{r,echo=FALSE}
+#summary(BSSModel)$adj.r.squared
+#summary(RoughModel)$adj.r.squared
+```
+
+The p-value is very small (2.157e-05), which means we should use RoughModel. However, the adjustive r square for BSSModel(0.991706) and RoughModel(0.9929377) differs so little that it is not convincing enough for us to add so many predictors. So we use the BSSModel as our final model.
+
+##Conditions for inference
+```{r,echo=FALSE,fig.asp=0.5}
+#Check for 6 conditions
+plot(BSSModel$residuals, xlab = "fitted values", ylab = "residuals")
+hist(BSSModel$residuals, xlab = "residuals")
+```
+
+1. Linearity: after polyomial, the plots shows linear relationships between the numeric variables and calories
+2. Zero mean: according to the residual plot above, there are random scatter points above and below the 0 line
+3. Constant variability: according to the residual plot above, variability of points around the 0 line is roughly constant.
+4. Independence: there is no obvious reason that independence is violated
+5. Random: the sample was selected randomly
+6. Normality: according to the histagram of residuals above, the distribution of residual is unimodel and symmetric
+
+##Final Model
+```{r,echo=FALSE}
+#summary(BSSModel)
+```
+
+$\widehat{Calories} = 2.8075 + 10.1957(Somthiesyes) +  0.4482(TotalFat) + 10.1478(TransFat) + 4.0403(Sugar) + 6.4179(Protein) - 0.5029(Sodium) - 15.6606(nonfatmilkyes) + 12.6142(soymilkyes) - 4.1077(sizeVenti)$
+
+R-square = 0.9917
+Residual standard error = 9.368
+
+##Analysis
+The model shows that calories of starbucks drinks are positively affected by its total fat, trans fat, sugar, and protein. Also, The drinks that are smothies are expected to have 10.1957 more calories than others. The drinks that contains soymilk are expected to have 12.6142 more calories. Plus, calories have negative relationships with sodium. Also, if nonfat milk is used, on average, the drinks will have 15.6606 less calories. Surprisingly, the drinks that are venti tend to have less calories also.
+
+##Conclusion
+In conclusion, I am quite confident with our model since the r square for it is very high. Indeed, there are some surprising part in our final model, but that's the result of our model selection, so we choose to trust techonology.
+
+
+
+
+
